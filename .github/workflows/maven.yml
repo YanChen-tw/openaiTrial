@@ -1,18 +1,8 @@
-# This workflow will build a Java project with Maven, and cache/restore any dependencies to improve the workflow execution time
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-java-with-maven
-
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-
-name: Java CI with Maven
+name: Spring Boot CI/CD Pipeline with Auto Version Update (Start from V1.0.0)
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    branches: [ main ]
 
 jobs:
   build_and_test:
@@ -35,12 +25,20 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-m2-
 
-      - name: Update version (Optional)
+      - name: Get current version (Optional)
+        id: get_version  # Optional step to retrieve current version
+        run: grep -Eo 'version=.*' VERSION | cut -d'=' -f2  # Replace VERSION with your version file path
+        if: always()  # Always run to handle initial version or no previous tag
+
+      - name: Update version automatically
         uses: community/generate-version@v2.0.1  # Replace with your preferred versioning action
         with:
           file: VERSION  # Replace with the path to your version file (e.g., pom.xml)
-          types: [ patch, minor, major ]  # Choose allowed version bumps
-        if: ${{ github.event_name == 'push' && github.base_ref == 'main' }}  # Only update on push to main branch
+          new-version: ${{ steps.get_version.outputs || '1.0.0' }}  # Use retrieved version or start with 1.0.0
+          types: [ patch, minor, major ]  # Choose allowed version bumps (all by default)
+
+      - name: Print new version
+        run: echo "New version: ${{ steps.update_version.outputs.new_version }}"
 
       - name: Install Maven dependencies
         run: mvn clean install
@@ -57,10 +55,26 @@ jobs:
       - name: Run Snyk Identify
         run: snyk identify --file pom.xml
 
-#     - name: Run Snyk Code (Optional)
-#       run: snyk code --org-name your-organization --project-name your-project-name
-#          if: ${{ secrets.SNYK_TOKEN }}  # Only run if SNYK_TOKEN secret is defined
+      - name: Run Snyk Code (Optional)
+        run: snyk code --org-name your-organization --project-name your-project-name
+          if: ${{ secrets.SNYK_TOKEN }}  # Only run if SNYK_TOKEN secret is defined
 
       - name: Build Spring Boot application
         run: mvn package
 
+Use code with caution.
+content_copy
+Explanation:
+
+on: This section defines the workflow trigger. It runs on pushes to the main branch.
+jobs: This defines the jobs within the workflow. Here, we have one job named build_and_test.
+runs-on: This defines the runner environment (OS) for the job.
+Steps: These are the individual steps executed within the job:
+Checkout: This checks out the code from the repository.
+Set up JDK 11: This sets up a JDK 11 environment with security features enabled.
+Cache Maven packages: This caches Maven packages to improve build speed.
+Get current version (Optional): This optional step retrieves the current version from your version file (replace VERSION with the actual path) using grep or a similar tool. It runs even if there's no previous version.
+Update version automatically: This uses the community/generate-version action to update the version in your version file. It uses the retrieved version (if any) or starts with 1.0.0 as the base.
+Print new version: This (optional) step prints the newly generated version for informational purposes.
+Install Maven dependencies: This installs the project's dependencies using Maven.
+Run SonarQube analysis (Optional): This uses the `
