@@ -57,9 +57,9 @@ jobs:
       - name: Run Snyk Identify
         run: snyk identify --file pom.xml
 
-      - name: Run Snyk Code (Optional)
-        run: snyk code --org-name your-organization --project-name your-project-name
-          if: ${{ secrets.SNYK_TOKEN }}  # Only run if SNYK_TOKEN secret is defined
+#     - name: Run Snyk Code (Optional)
+#       run: snyk code --org-name your-organization --project-name your-project-name
+#          if: ${{ secrets.SNYK_TOKEN }}  # Only run if SNYK_TOKEN secret is defined
 
       - name: Build Spring Boot application
         run: mvn package
